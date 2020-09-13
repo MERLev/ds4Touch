@@ -29,7 +29,6 @@ add_executable(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-  ds4touch_stub
   k
   gcc
   taihen_stub
@@ -40,6 +39,7 @@ target_link_libraries(${PROJECT_NAME}
   SceSysmem_stub_weak
   SceMotion_stub 
   SceTouch_stub 
+  ds4touch_stub
 )
 
 set_target_properties(${PROJECT_NAME}
@@ -48,10 +48,4 @@ set_target_properties(${PROJECT_NAME}
 
 vita_create_self(ds4touch.suprx ${PROJECT_NAME}
   CONFIG export.yml
-)
-
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ds4touch.suprx ${PROJECT_BINARY_DIR}/../ds4touch.suprx
-    COMMENT "Copied ${PROJECT_BINARY_DIR}/../ds4touch.suprx"
-    DEPENDS ds4touch.suprx
 )

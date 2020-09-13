@@ -1,6 +1,7 @@
 #include <vitasdk.h>
 #include <taihen.h>
 #include <stdbool.h>
+#include <string.h>
 #include <psp2/motion.h> 
 #include <psp2/kernel/threadmgr.h> 
 #include "log.h"

@@ -9,7 +9,7 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 # add_definitions(-DLOG_DISC)
-add_definitions(-DLOG_DEBUG)
+# add_definitions(-DLOG_DEBUG)
 
 project(ds4touch)
 add_subdirectory(kernel)

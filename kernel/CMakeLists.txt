@@ -27,9 +27,6 @@ if (RELEASE)
 	add_definitions(-DRELEASE)
 endif(RELEASE)
 
-# add_definitions(-DLOG_DISC)
-add_definitions(-DLOG_DEBUG)
-
 add_executable(${PROJECT_NAME}
 	src/main.c
 	src/log.c
@@ -66,10 +63,4 @@ vita_create_stubs(stubs ${PROJECT_NAME} export.yml KERNEL)
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/stubs/
 	DESTINATION lib
 	FILES_MATCHING PATTERN "*.a"
-)
-
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ds4touch.skprx ${PROJECT_BINARY_DIR}/../ds4touch.skprx
-    COMMENT "Copied ${PROJECT_BINARY_DIR}/../ds4touch.skprx"
-    DEPENDS ds4touch.skprx
 )

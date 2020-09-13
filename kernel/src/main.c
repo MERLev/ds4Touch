@@ -22,6 +22,7 @@
 #define VITA_FRONT_TOUCHSCREEN_H 1080
 
 #define TTL_DS4_REPORT (100*1000)
+#define TTL_DS4_CONNECTION (1000*1000)
 
 #define EVF_EXIT	(1 << 0)
 
@@ -123,6 +124,8 @@ struct ds4_input_report {
 
 static struct ds4_input_report ds4report;
 volatile static SceUInt64 ds4reportTimestamp = 0;
+volatile unsigned int ds4mac0 = 0,  ds4mac1 = 0;
+volatile int isDs4Active = 0;
 
 int32_t clamp(int32_t value, int32_t mini, int32_t maxi) {
 	if (value < mini) return mini; 
@@ -139,6 +142,22 @@ static int is_ds4(const unsigned short vid_pid[2])
 static void patch_touch_data(SceUInt32 port, SceTouchData *pData, SceUInt32 nBufs,
 			    struct ds4_input_report *ds4)
 {
+	//Return if no ds4 connected
+	if (!isDs4Active)
+		return;
+
+	// Controller selected for touch lost connection
+	if ((ksceKernelGetSystemTimeWide() - ds4reportTimestamp) > TTL_DS4_CONNECTION){
+		isDs4Active = 0;
+		ds4mac0 = 0;
+		ds4mac1 = 0;
+		return;
+	}
+
+	// Report from connected controller is too old to be used
+	if ((ksceKernelGetSystemTimeWide() - ds4reportTimestamp) > TTL_DS4_REPORT)
+		return;
+
 	unsigned int i;
 
 	if (port != SCE_TOUCH_PORT_FRONT)
@@ -181,7 +200,7 @@ static void patch_touch_data(SceUInt32 port, SceTouchData *pData, SceUInt32 nBuf
 }
 
 /*export*/ int ds4touch_onTouch(SceUInt32 port, SceTouchData *pData, SceUInt32 nBufs){
-	if (nBufs >= 0 && nBufs < 64 && ((ksceKernelGetSystemTimeWide() - ds4reportTimestamp) < TTL_DS4_REPORT)){
+	if (nBufs >= 0 && nBufs < 64){
         SceTouchData std;
         ksceKernelMemcpyUserToKernel(&std, (uintptr_t)&pData[nBufs-1], sizeof(SceTouchData));
 		patch_touch_data(port, &std, 1, &ds4report);
@@ -195,7 +214,7 @@ DECL_FUNC_HOOK(SceTouch_ksceTouchPeek, SceUInt32 port, SceTouchData *pData, SceU
 {
 	int ret = TAI_CONTINUE(int, SceTouch_ksceTouchPeek_ref, port, pData, nBufs);
 	
-	if (ret >= 0 && ret < 64 && ((ksceKernelGetSystemTimeWide() - ds4reportTimestamp) < TTL_DS4_REPORT))
+	if (ret >= 0 && ret < 64)
 		patch_touch_data(port, pData, nBufs, &ds4report);
 
 	return ret;
@@ -205,7 +224,7 @@ DECL_FUNC_HOOK(SceTouch_ksceTouchPeekRegion, SceUInt32 port, SceTouchData *pData
 {
 	int ret = TAI_CONTINUE(int, SceTouch_ksceTouchPeekRegion_ref, port, pData, nBufs, region);
 
-	if (ret >= 0 && ret < 64 && ((ksceKernelGetSystemTimeWide() - ds4reportTimestamp) < TTL_DS4_REPORT))
+	if (ret >= 0 && ret < 64)
 		patch_touch_data(port, pData, nBufs, &ds4report);
 
 	return ret;
@@ -215,7 +234,7 @@ DECL_FUNC_HOOK(SceTouch_ksceTouchRead, SceUInt32 port, SceTouchData *pData, SceU
 {
 	int ret = TAI_CONTINUE(int, SceTouch_ksceTouchRead_ref, port, pData, nBufs);
 
-	if (ret >= 0 && ret < 64 && ((ksceKernelGetSystemTimeWide() - ds4reportTimestamp) < TTL_DS4_REPORT))
+	if (ret >= 0 && ret < 64)
 		patch_touch_data(port, pData, nBufs, &ds4report);
 
 	return ret;
@@ -225,7 +244,7 @@ DECL_FUNC_HOOK(SceTouch_ksceTouchReadRegion, SceUInt32 port, SceTouchData *pData
 {
 	int ret = TAI_CONTINUE(int, SceTouch_ksceTouchReadRegion_ref, port, pData, nBufs, region);
 
-	if (ret >= 0 && ret < 64 && ((ksceKernelGetSystemTimeWide() - ds4reportTimestamp) < TTL_DS4_REPORT))
+	if (ret >= 0 && ret < 64)
 		patch_touch_data(port, pData, nBufs, &ds4report);
 
 	return ret;
@@ -237,12 +256,19 @@ DECL_FUNC_HOOK(SceTouch_ksceBtHidTransfer, unsigned int mac0, unsigned int mac1,
 
 	// LOG("ksceBtHidTransfer(%u, %u, [%u, %hhu])\n", mac0, mac1, request->length, request->type);
 	if (request->length == 80 && request->type == 0){
-		unsigned short vid_pid[2];
-		ksceBtGetVidPid(mac0, mac1, vid_pid);
-		if (!is_ds4(vid_pid))
-			return ret;
-    	ds4reportTimestamp = (SceUInt64)ksceKernelGetSystemTimeWide();
-		memcpy(&ds4report, request->buffer, sizeof(ds4report));
+		if (!isDs4Active){
+			unsigned short vid_pid[2];
+			ksceBtGetVidPid(mac0, mac1, vid_pid);
+			if (is_ds4(vid_pid)){
+				isDs4Active = 1;
+				ds4mac0 = mac0;
+				ds4mac1 = mac1;
+			}
+		}
+		if (isDs4Active && ds4mac0 == mac0 && ds4mac1 == mac1){
+			ds4reportTimestamp = (SceUInt64)ksceKernelGetSystemTimeWide();
+			memcpy(&ds4report, request->buffer, sizeof(ds4report));
+		}
 	}
 	return ret;
 }
@@ -257,7 +283,7 @@ int module_start(SceSize argc, const void *args)
 	log_reset();
 	memset(&ds4report, 0, sizeof(ds4report));
 
-	LOG("ds34vita by xerpi\n");
+	LOG("ds34vita started\n");
 
 	SceBt_modinfo.size = sizeof(SceBt_modinfo);
 	ret = taiGetModuleInfoForKernel(KERNEL_PID, "SceBt", &SceBt_modinfo);
