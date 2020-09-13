@@ -13,7 +13,6 @@ static tai_hook_ref_t refs[HOOKS_NUM];
 #define DECL_FUNC_HOOK_PATCH_TOUCH(index, name) \
     static int name##_patched(SceUInt32 port, SceTouchData *pData, SceUInt32 nBufs) { \
 		int ret = TAI_CONTINUE(int, refs[(index)], port, pData, nBufs); \
-		LOG("sceTouch%i();\n", (index)); \
 		if (ret > 0 && ret < 64) \
 			return ds4touch_onTouch(port, pData, ret); \
 		return ret; \

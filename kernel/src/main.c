@@ -147,6 +147,7 @@ static void patch_touch_data(SceUInt32 port, SceTouchData *pData, SceUInt32 nBuf
 	for (i = 0; i < nBufs; i++) {
 		unsigned int num_reports = 0;
 
+		// If finger1 present, add finger1 as report 0
 		if (!ds4->finger1_activelow) {
 			pData->report[0].id = ds4->finger1_id;
 			pData->report[0].x = (ds4->finger1_x * VITA_FRONT_TOUCHSCREEN_W) / DS4_TOUCHPAD_W;
@@ -154,7 +155,16 @@ static void patch_touch_data(SceUInt32 port, SceTouchData *pData, SceUInt32 nBuf
 			num_reports++;
 		}
 
-		if (!ds4->finger2_activelow) {
+		// If only finger2 is present, add finger2 as report 0
+		if (!ds4->finger2_activelow && ds4->finger1_activelow) {
+			pData->report[0].id = ds4->finger2_id;
+			pData->report[0].x = (ds4->finger2_x * VITA_FRONT_TOUCHSCREEN_W) / DS4_TOUCHPAD_W;
+			pData->report[0].y = (ds4->finger2_y * VITA_FRONT_TOUCHSCREEN_H) / DS4_TOUCHPAD_H;
+			num_reports++;
+		}
+
+		// If both finger1 and finger2 present, add finger2 as report 1
+		if (!ds4->finger2_activelow && !ds4->finger1_activelow) {
 			pData->report[1].id = ds4->finger2_id;
 			pData->report[1].x = (ds4->finger2_x * VITA_FRONT_TOUCHSCREEN_W) / DS4_TOUCHPAD_W;
 			pData->report[1].y = (ds4->finger2_y * VITA_FRONT_TOUCHSCREEN_H) / DS4_TOUCHPAD_H;
@@ -171,8 +181,7 @@ static void patch_touch_data(SceUInt32 port, SceTouchData *pData, SceUInt32 nBuf
 }
 
 /*export*/ int ds4touch_onTouch(SceUInt32 port, SceTouchData *pData, SceUInt32 nBufs){
-	LOG("ds4touch_onTouch()\n");
-    if (nBufs >= 0 && nBufs < 64 && ((ksceKernelGetSystemTimeWide() - ds4reportTimestamp) < TTL_DS4_REPORT)){
+	if (nBufs >= 0 && nBufs < 64 && ((ksceKernelGetSystemTimeWide() - ds4reportTimestamp) < TTL_DS4_REPORT)){
         SceTouchData std;
         ksceKernelMemcpyUserToKernel(&std, (uintptr_t)&pData[nBufs-1], sizeof(SceTouchData));
 		patch_touch_data(port, &std, 1, &ds4report);
@@ -196,8 +205,6 @@ DECL_FUNC_HOOK(SceTouch_ksceTouchPeekRegion, SceUInt32 port, SceTouchData *pData
 {
 	int ret = TAI_CONTINUE(int, SceTouch_ksceTouchPeekRegion_ref, port, pData, nBufs, region);
 
-	//LOG("ksceTouchPeekRegion() %i:%llu-%llu=%i\n", (int)((ksceKernelGetSystemTimeWide() - ds4reportTimestamp) < TTL_DS4_REPORT), 
-	//	(uint64_t)ksceKernelGetSystemTimeWide(), (uint64_t)ds4reportTimestamp, (int)((uint64_t)ksceKernelGetSystemTimeWide() - (uint64_t)ds4reportTimestamp));
 	if (ret >= 0 && ret < 64 && ((ksceKernelGetSystemTimeWide() - ds4reportTimestamp) < TTL_DS4_REPORT))
 		patch_touch_data(port, pData, nBufs, &ds4report);
 
@@ -228,7 +235,7 @@ DECL_FUNC_HOOK(SceTouch_ksceBtHidTransfer, unsigned int mac0, unsigned int mac1,
 {
 	int ret = TAI_CONTINUE(int, SceTouch_ksceBtHidTransfer_ref, mac0, mac1, request);
 
-	LOG("ksceBtHidTransfer(%u, %u, [%u, %hhu])\n", mac0, mac1, request->length, request->type);
+	// LOG("ksceBtHidTransfer(%u, %u, [%u, %hhu])\n", mac0, mac1, request->length, request->type);
 	if (request->length == 80 && request->type == 0){
 		unsigned short vid_pid[2];
 		ksceBtGetVidPid(mac0, mac1, vid_pid);
