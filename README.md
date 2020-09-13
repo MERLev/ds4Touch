@@ -9,7 +9,7 @@ Based on [xerpi](https://github.com/xerpi "xerpi")'s [ds4vita code](https://gith
 2. Add **ds4touch.skprx** to taiHEN's config (*ur0:/tai/config.txt*) under **KERNEL** section:
 	```
 	*KERNEL
-	ux0:tai/ds4touch.skprx
+	ur0:tai/ds4touch.skprx
 	```
 
 ### PS TV install
@@ -18,12 +18,12 @@ Based on [xerpi](https://github.com/xerpi "xerpi")'s [ds4vita code](https://gith
 2. Add **ds4touch.skprx** to taiHEN's config (*ur0:/tai/config.txt*) under **KERNEL** section:
 	```
 	*KERNEL
-	ux0:tai/ds4touch.skprx
+	ur0:tai/ds4touch.skprx
 	```
 3. Add **ds4touch.suprx** to taiHEN's config (*ur0:/tai/config.txt*) under **ALL** section:
 	```
 	*ALL
-	ux0:tai/ds4touch.suprx
+	ur0:tai/ds4touch.suprx
 	```
 
 ### Download: 
