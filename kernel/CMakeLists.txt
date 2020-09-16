@@ -33,18 +33,15 @@ add_executable(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-	m
 	gcc
 	taihenForKernel_stub
 	SceSysclibForDriver_stub
-	SceSysmemForDriver_stub
-	SceSysmemForKernel_stub
 	SceThreadmgrForDriver_stub
 	SceIofilemgrForDriver_stub
 	SceBtForDriver_stub
 	SceKernelSuspendForDriver_stub
-	SceCtrlForDriver_stub
 	SceDebugForDriver_stub
+	SceRegMgrForDriver_stub 
 )
 
 set_target_properties(${PROJECT_NAME}
@@ -55,12 +52,4 @@ set_target_properties(${PROJECT_NAME}
 vita_create_self(ds4touch.skprx ${PROJECT_NAME}
 	UNSAFE
 	CONFIG export.yml
-)
-add_dependencies(ds4touch.skprx ${PROJECT_NAME})
- 
-vita_create_stubs(stubs ${PROJECT_NAME} export.yml KERNEL)
-
-install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/stubs/
-	DESTINATION lib
-	FILES_MATCHING PATTERN "*.a"
 )

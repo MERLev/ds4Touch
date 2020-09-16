@@ -1,3 +1,4 @@
+#ifdef LOG_DISC
 #include <vitasdkkern.h>
 #include <taihen.h>
 #include <psp2kern/io/fcntl.h>
@@ -39,3 +40,5 @@ void log_flush(){
 	memset(log_buf, 0, sizeof(log_buf));
 	log_buf_ptr = 0;
 }
+
+#endif

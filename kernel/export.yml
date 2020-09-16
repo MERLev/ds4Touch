@@ -6,8 +6,3 @@ ds4touch:
   main:
     start: module_start
     stop: module_stop
-  modules:
-    ds4TouchLib:
-      syscall: true
-      functions:
-        - ds4touch_onTouch
