@@ -12,10 +12,6 @@ Based on [xerpi](https://github.com/xerpi "xerpi")'s [ds4vita code](https://gith
 	*KERNEL
 	ur0:tai/ds4touch.skprx
 	```
-### Limitations
-- If connected several controllers, only the one connected first would be able to use touchpad
-- On **PS TV** touchpad is not working on LiveArea and in system apps.
-- On **PS TV** all native touch pointer functionality is disabled.
 
 ### Limitations
 - If connected several controllers, only the one connected first would be able to use touchpad
