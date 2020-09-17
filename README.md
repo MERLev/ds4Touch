@@ -1,4 +1,4 @@
-#  ds4touch v1.1
+#  ds4touch v1.1.1
 
 Adds ds4 touchpad support (ds4vita way) to PS TV and Vita with MiniVitaTV.\
 Based on [xerpi](https://github.com/xerpi "xerpi")'s [ds4vita code](https://github.com/xerpi/ds4vita "ds4vita code")
@@ -12,10 +12,6 @@ Based on [xerpi](https://github.com/xerpi "xerpi")'s [ds4vita code](https://gith
 	*KERNEL
 	ur0:tai/ds4touch.skprx
 	```
-### Limitations
-- If connected several controllers, only the one connected first would be able to use touchpad
-- On **PS TV** touchpad is not working on LiveArea and in system apps.
-- On **PS TV** all native touch pointer functionality is disabled.
 
 ### Limitations
 - If connected several controllers, only the one connected first would be able to use touchpad

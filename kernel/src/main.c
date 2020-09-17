@@ -14,6 +14,8 @@
 
 #define DS4_TOUCHPAD_W 1920
 #define DS4_TOUCHPAD_H 940
+#define DS4_TOUCHPAD_W_DEAD 60
+#define DS4_TOUCHPAD_H_DEAD 120
 
 #define VITA_FRONT_TOUCHSCREEN_W 1920
 #define VITA_FRONT_TOUCHSCREEN_H 1080
@@ -25,6 +27,8 @@
 #define EVF_EXIT	(1 << 0)
 
 #define abs(x) (((x) < 0) ? -(x) : (x))
+#define max(a,b) (((a)>(b))?(a):(b))
+#define min(a,b) (((a)<(b))?(a):(b))
 
 #define DECL_FUNC_HOOK(name, ...) \
 	static tai_hook_ref_t name##_ref; \
@@ -172,34 +176,32 @@ static void patch_touch_data(SceUInt32 port, SceTouchData *pData, SceUInt32 nBuf
 
 		// If finger1 present, add finger1 as report 0
 		if (!ds4->finger1_activelow) {
-			pData->report[0].id = ds4->finger1_id;
-			pData->report[0].x = (ds4->finger1_x * VITA_FRONT_TOUCHSCREEN_W) / DS4_TOUCHPAD_W;
-			pData->report[0].y = (ds4->finger1_y * VITA_FRONT_TOUCHSCREEN_H) / DS4_TOUCHPAD_H;
+			pData[i].report[0].id = ds4->finger1_id;
+			pData[i].report[0].x = clamp(((ds4->finger1_x - DS4_TOUCHPAD_W_DEAD) * VITA_FRONT_TOUCHSCREEN_W) / (DS4_TOUCHPAD_W - DS4_TOUCHPAD_W_DEAD * 2), 0, VITA_FRONT_TOUCHSCREEN_W);
+			pData[i].report[0].y = clamp(((ds4->finger1_y - DS4_TOUCHPAD_H_DEAD) * VITA_FRONT_TOUCHSCREEN_H) / (DS4_TOUCHPAD_H - DS4_TOUCHPAD_H_DEAD * 2), 0, VITA_FRONT_TOUCHSCREEN_H);
 			num_reports++;
 		}
 
 		// If only finger2 is present, add finger2 as report 0
 		if (!ds4->finger2_activelow && ds4->finger1_activelow) {
-			pData->report[0].id = ds4->finger2_id;
-			pData->report[0].x = (ds4->finger2_x * VITA_FRONT_TOUCHSCREEN_W) / DS4_TOUCHPAD_W;
-			pData->report[0].y = (ds4->finger2_y * VITA_FRONT_TOUCHSCREEN_H) / DS4_TOUCHPAD_H;
+			pData[i].report[0].id = ds4->finger2_id;
+			pData[i].report[0].x = (ds4->finger2_x * VITA_FRONT_TOUCHSCREEN_W) / DS4_TOUCHPAD_W;
+			pData[i].report[0].y = (ds4->finger2_y * VITA_FRONT_TOUCHSCREEN_H) / DS4_TOUCHPAD_H;
 			num_reports++;
 		}
 
 		// If both finger1 and finger2 present, add finger2 as report 1
 		if (!ds4->finger2_activelow && !ds4->finger1_activelow) {
-			pData->report[1].id = ds4->finger2_id;
-			pData->report[1].x = (ds4->finger2_x * VITA_FRONT_TOUCHSCREEN_W) / DS4_TOUCHPAD_W;
-			pData->report[1].y = (ds4->finger2_y * VITA_FRONT_TOUCHSCREEN_H) / DS4_TOUCHPAD_H;
+			pData[i].report[1].id = ds4->finger2_id;
+			pData[i].report[1].x = (ds4->finger2_x * VITA_FRONT_TOUCHSCREEN_W) / DS4_TOUCHPAD_W;
+			pData[i].report[1].y = (ds4->finger2_y * VITA_FRONT_TOUCHSCREEN_H) / DS4_TOUCHPAD_H;
 			num_reports++;
 		}
 
 		if (num_reports > 0) {
 			ksceKernelPowerTick(0);
-			pData->reportNum = num_reports;
+			pData[i].reportNum = num_reports;
 		}
-
-		pData++;
 	}
 }
 
@@ -301,8 +303,8 @@ error_find_scebt:
 int module_stop(SceSize argc, const void *args)
 {
 	UNBIND_FUNC_HOOK(SceTouch_ksceTouchPeek);
-	UNBIND_FUNC_HOOK(SceTouch_ksceTouchPeekRegion);
 	UNBIND_FUNC_HOOK(SceTouch_ksceTouchRead);
+	UNBIND_FUNC_HOOK(SceTouch_ksceTouchPeekRegion);
 	UNBIND_FUNC_HOOK(SceTouch_ksceTouchReadRegion);
 	UNBIND_FUNC_HOOK(SceTouch_ksceBtHidTransfer);
 	
