@@ -229,8 +229,8 @@ DECL_FUNC_HOOK(SceTouch_ksceTouchReadRegion, SceUInt32 port, SceTouchData *pData
 	return ret;
 }
 
-DECL_FUNC_HOOK(SceTouch_ksceBtHidTransfer, unsigned int mac0, unsigned int mac1, SceBtHidRequest *request){
-	int ret = TAI_CONTINUE(int, SceTouch_ksceBtHidTransfer_ref, mac0, mac1, request);
+DECL_FUNC_HOOK(SceBT_ksceBtHidTransfer, unsigned int mac0, unsigned int mac1, SceBtHidRequest *request){
+	int ret = TAI_CONTINUE(int, SceBT_ksceBtHidTransfer_ref, mac0, mac1, request);
 
 	if (request->length == 80 && request->type == 0){
 		if (!isDs4Active){
@@ -250,24 +250,22 @@ DECL_FUNC_HOOK(SceTouch_ksceBtHidTransfer, unsigned int mac0, unsigned int mac1,
 	return ret;
 }
 
-// Thread used to keep touchEmulation value updated on PS TV
-static int main_thread(SceSize args, void *argp) {
-    while (thread_run) {
-    	ksceRegMgrGetKeyInt("/CONFIG/SHELL", "touch_emulation", &touchEmulation);
-        ksceKernelDelayThread(RECHECK_REGISTRY);
-    }
-    return 0;
+DECL_FUNC_HOOK(SceRegistryMgr_ksceRegMgrSetKeyInt, const char *category, const char *name, int buf){
+	int ret = TAI_CONTINUE(int, SceRegistryMgr_ksceRegMgrSetKeyInt_ref, category, name, buf);
+	if (strcmp(category, "/CONFIG/SHELL") == 0 && strcmp(name, "touch_emulation") == 0)
+		touchEmulation = buf;
+	return ret;
 }
 
 void _start() __attribute__ ((weak, alias ("module_start")));
 int module_start(SceSize argc, const void *args){
-	int ret;
-	tai_module_info_t modInfo;
-
-	memset(&ds4report, 0, sizeof(ds4report));
-
 	LOG("module_start\n");
 
+	int ret;
+	memset(&ds4report, 0, sizeof(ds4report));
+	ksceRegMgrGetKeyInt("/CONFIG/SHELL", "touch_emulation", &touchEmulation);
+	
+	tai_module_info_t modInfo;
 	modInfo.size = sizeof(modInfo);
 	ret = taiGetModuleInfoForKernel(KERNEL_PID, "SceBt", &modInfo);
 	if (ret < 0) {
@@ -284,12 +282,8 @@ int module_start(SceSize argc, const void *args){
 	BIND_FUNC_EXPORT_HOOK(KERNEL_PID, sceTouchModuleName, TAI_ANY_LIBRARY, 0x70C8AACE, SceTouch_ksceTouchRead);
 	BIND_FUNC_EXPORT_HOOK(KERNEL_PID, sceTouchModuleName, TAI_ANY_LIBRARY, 0x9B3F7207, SceTouch_ksceTouchPeekRegion);
 	BIND_FUNC_EXPORT_HOOK(KERNEL_PID, sceTouchModuleName, TAI_ANY_LIBRARY, 0x9A91F624, SceTouch_ksceTouchReadRegion);
-	BIND_FUNC_EXPORT_HOOK(KERNEL_PID, "SceBt", TAI_ANY_LIBRARY, 0xF9DCEC77, SceTouch_ksceBtHidTransfer);
-
-	if (ret < 0){
-		thread_uid = ksceKernelCreateThread("ds4touch_thread", main_thread, 0x3C, 0x3000, 0, 0x10000, 0);
-		ksceKernelStartThread(thread_uid, 0, NULL);
-	}
+	BIND_FUNC_EXPORT_HOOK(KERNEL_PID, "SceRegistryMgr", 0xB2223AEB, 0xD72EA399, SceRegistryMgr_ksceRegMgrSetKeyInt);
+	BIND_FUNC_EXPORT_HOOK(KERNEL_PID, "SceBt", TAI_ANY_LIBRARY, 0xF9DCEC77, SceBT_ksceBtHidTransfer);
 
 	LOGF("module_start finished successfully!\n");
 
@@ -300,13 +294,13 @@ error_find_scebt:
 	return SCE_KERNEL_START_FAILED;
 }
 
-int module_stop(SceSize argc, const void *args)
-{
+int module_stop(SceSize argc, const void *args){
 	UNBIND_FUNC_HOOK(SceTouch_ksceTouchPeek);
 	UNBIND_FUNC_HOOK(SceTouch_ksceTouchRead);
 	UNBIND_FUNC_HOOK(SceTouch_ksceTouchPeekRegion);
 	UNBIND_FUNC_HOOK(SceTouch_ksceTouchReadRegion);
-	UNBIND_FUNC_HOOK(SceTouch_ksceBtHidTransfer);
+	UNBIND_FUNC_HOOK(SceRegistryMgr_ksceRegMgrSetKeyInt);
+	UNBIND_FUNC_HOOK(SceBT_ksceBtHidTransfer);
 	
     if (thread_uid >= 0) {
         thread_run = 0;

@@ -23,3 +23,4 @@ https://github.com/MERLev/ds4touch/releases
 ### Credits
 Based on [ds4vita](https://github.com/xerpi/ds4vita "ds4vita code") by [xerpi](https://github.com/xerpi "xerpi")\
 All testing done by [bosshunter](https://github.com/bosshunter)
+Special thanks to [teakhanirons](https://github.com/teakhanirons) for pointing out some issues.
