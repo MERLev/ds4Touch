@@ -1,4 +1,4 @@
-#  ds4touch v1.1.1
+#  ds4touch v1.1.2
 
 Adds ds4 touchpad support (ds4vita way) to PS TV and Vita with MiniVitaTV.\
 Based on [xerpi](https://github.com/xerpi "xerpi")'s [ds4vita code](https://github.com/xerpi/ds4vita "ds4vita code")
