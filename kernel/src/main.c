@@ -143,6 +143,10 @@ static int is_ds4(const unsigned short vid_pid[2]){
 		((vid_pid[1] == DS4_PID) || (vid_pid[1] == DS4_NEW_PID));
 }
 
+static int rescaleTouchCoordinate(int ds4coord, int ds4size, int ds4dead, int vitasize){
+	return clamp(((ds4coord - ds4dead) * vitasize) / (ds4size - ds4dead * 2), 0, vitasize - 1);
+}
+
 static void patch_touch_data(SceUInt32 port, SceTouchData *pData, SceUInt32 nBufs, struct ds4_input_report *ds4){
 	// Touch emulation on PS TV enabled
 	if(touchEmulation)
@@ -177,24 +181,24 @@ static void patch_touch_data(SceUInt32 port, SceTouchData *pData, SceUInt32 nBuf
 		// If finger1 present, add finger1 as report 0
 		if (!ds4->finger1_activelow) {
 			pData[i].report[0].id = ds4->finger1_id;
-			pData[i].report[0].x = clamp(((ds4->finger1_x - DS4_TOUCHPAD_W_DEAD) * VITA_FRONT_TOUCHSCREEN_W) / (DS4_TOUCHPAD_W - DS4_TOUCHPAD_W_DEAD * 2), 0, VITA_FRONT_TOUCHSCREEN_W);
-			pData[i].report[0].y = clamp(((ds4->finger1_y - DS4_TOUCHPAD_H_DEAD) * VITA_FRONT_TOUCHSCREEN_H) / (DS4_TOUCHPAD_H - DS4_TOUCHPAD_H_DEAD * 2), 0, VITA_FRONT_TOUCHSCREEN_H);
+			pData[i].report[0].x = rescaleTouchCoordinate(ds4->finger1_x, DS4_TOUCHPAD_W, DS4_TOUCHPAD_W_DEAD, VITA_FRONT_TOUCHSCREEN_W);
+			pData[i].report[0].y = rescaleTouchCoordinate(ds4->finger1_y, DS4_TOUCHPAD_H, DS4_TOUCHPAD_H_DEAD, VITA_FRONT_TOUCHSCREEN_H);
 			num_reports++;
 		}
 
 		// If only finger2 is present, add finger2 as report 0
 		if (!ds4->finger2_activelow && ds4->finger1_activelow) {
 			pData[i].report[0].id = ds4->finger2_id;
-			pData[i].report[0].x = (ds4->finger2_x * VITA_FRONT_TOUCHSCREEN_W) / DS4_TOUCHPAD_W;
-			pData[i].report[0].y = (ds4->finger2_y * VITA_FRONT_TOUCHSCREEN_H) / DS4_TOUCHPAD_H;
+			pData[i].report[0].x = rescaleTouchCoordinate(ds4->finger2_x, DS4_TOUCHPAD_W, DS4_TOUCHPAD_W_DEAD, VITA_FRONT_TOUCHSCREEN_W);
+			pData[i].report[0].y = rescaleTouchCoordinate(ds4->finger2_y, DS4_TOUCHPAD_H, DS4_TOUCHPAD_H_DEAD, VITA_FRONT_TOUCHSCREEN_H);
 			num_reports++;
 		}
 
 		// If both finger1 and finger2 present, add finger2 as report 1
 		if (!ds4->finger2_activelow && !ds4->finger1_activelow) {
 			pData[i].report[1].id = ds4->finger2_id;
-			pData[i].report[1].x = (ds4->finger2_x * VITA_FRONT_TOUCHSCREEN_W) / DS4_TOUCHPAD_W;
-			pData[i].report[1].y = (ds4->finger2_y * VITA_FRONT_TOUCHSCREEN_H) / DS4_TOUCHPAD_H;
+			pData[i].report[1].x = rescaleTouchCoordinate(ds4->finger2_x, DS4_TOUCHPAD_W, DS4_TOUCHPAD_W_DEAD, VITA_FRONT_TOUCHSCREEN_W);
+			pData[i].report[1].y = rescaleTouchCoordinate(ds4->finger2_y, DS4_TOUCHPAD_H, DS4_TOUCHPAD_H_DEAD, VITA_FRONT_TOUCHSCREEN_H);
 			num_reports++;
 		}
 
@@ -264,7 +268,7 @@ int module_start(SceSize argc, const void *args){
 	int ret;
 	memset(&ds4report, 0, sizeof(ds4report));
 	ksceRegMgrGetKeyInt("/CONFIG/SHELL", "touch_emulation", &touchEmulation);
-	
+
 	tai_module_info_t modInfo;
 	modInfo.size = sizeof(modInfo);
 	ret = taiGetModuleInfoForKernel(KERNEL_PID, "SceBt", &modInfo);
